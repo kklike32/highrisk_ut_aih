@@ -1,7 +1,6 @@
 ```markdown
 # Project Proposal: AI in Dermatology
 
-
 **Personalized Virtual Dermatology Health Advisor Agent**
 
 ## 1. Project Overview
