@@ -1,0 +1,23 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Data / artifacts
+data/
+artifacts/
+models/
+reports/
+*.onnx
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.idea/
+
