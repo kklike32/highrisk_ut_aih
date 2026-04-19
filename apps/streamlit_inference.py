@@ -44,62 +44,37 @@ def _ensure_adk_runner():
             st.session_state.adk_runner_error = str(e)
 
 
-def _render_classifier(paths: Paths, ckpt_path: Path, device: str) -> None:
-    st.subheader("Lesion classifier")
-    default_ckpt = paths.artifacts_dir / "best_model.pt"
-    ckpt_path_str = st.text_input("Checkpoint path", value=str(ckpt_path or default_ckpt), key="cls_ckpt")
-    ckpt_path_resolved = Path(ckpt_path_str)
+def _run_classifier(paths: Paths, ckpt_path: Path, device: str, image_path: Path) -> dict:
+    """Run the classifier on an image and return results."""
+    if not ckpt_path.exists():
+        return {"error": f"Checkpoint not found: {ckpt_path}"}
 
-    uploaded = st.file_uploader("Upload a skin lesion photo", type=["jpg", "jpeg", "png", "webp"])
-    if not uploaded:
-        return
-
-    suffix = Path(uploaded.name).suffix or ".jpg"
-    tmp_path = paths.artifacts_dir / f"_upload_{uuid.uuid4().hex}{suffix}"
-    tmp_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path.write_bytes(uploaded.getvalue())
-    st.session_state["last_image_path"] = str(tmp_path)
-
-    st.image(uploaded.getvalue(), caption="Uploaded image", use_container_width=True)
-
-    if not ckpt_path_resolved.exists():
-        st.error(f"Checkpoint not found: {ckpt_path_resolved}")
-        return
-
-    model, class_names, ckpt = _load_checkpoint(ckpt_path_resolved, device)
+    model, class_names, ckpt = _load_checkpoint(ckpt_path, device)
     image_size = int(ckpt["train_config"].get("image_size", 224))
     tfm = build_eval_tfms(image_size)
 
     import numpy as np
     from PIL import Image
 
-    img = Image.open(tmp_path).convert("RGB")
+    img = Image.open(image_path).convert("RGB")
     arr = np.array(img)
     t = tfm(image=arr)["image"]
     proba = predict_proba(model, t, device=device)
 
     top_idx = int(torch.argmax(proba).item())
     conf = float(proba[top_idx].item())
-    st.markdown("**Prediction**")
-    st.json({"label": class_names[top_idx], "confidence": conf})
 
-    with st.expander("All class probabilities"):
-        st.json({class_names[i]: float(proba[i]) for i in range(len(class_names))})
-
-    metrics_path = paths.reports_dir / "metrics.json"
-    if metrics_path.exists():
-        with st.expander("Last training run test metrics"):
-            st.json(json.loads(metrics_path.read_text()).get("test", {}))
-
-    st.caption(f"Image saved for the advisor tab: `{tmp_path}`")
+    return {
+        "label": class_names[top_idx],
+        "confidence": conf,
+        "all_probabilities": {class_names[i]: float(proba[i]) for i in range(len(class_names))}
+    }
 
 
-def _render_adk_chat() -> None:
-    st.subheader("Derm advisor (ADK chat)")
-    st.caption(
-        "Same Google ADK **Runner** stack as `adk web` / `adk run`, embedded here so you get a single browser UI."
-    )
+def _render_unified_advisor(paths: Paths, ckpt_path: Path, device: str) -> None:
+    """Single unified interface with image upload and advisor chat."""
 
+    # Initialize ADK runner
     if err := st.session_state.get("adk_runner_error"):
         st.warning(
             f"Could not initialize ADK Runner ({err}). "
@@ -110,6 +85,7 @@ def _render_adk_chat() -> None:
     _ensure_adk_runner()
     runner = st.session_state.get("adk_runner")
 
+    # Session state initialization
     if "chat_messages" not in st.session_state:
         st.session_state.chat_messages = []
     if "adk_user_id" not in st.session_state:
@@ -117,53 +93,93 @@ def _render_adk_chat() -> None:
     if "adk_session_id" not in st.session_state:
         st.session_state.adk_session_id = str(uuid.uuid4())
 
-    c1, c2 = st.columns([1, 1])
-    with c1:
-        if st.button("New chat session", help="Clears messages and starts a fresh ADK session id."):
+    # Layout: sidebar for image upload, main area for chat
+    with st.sidebar:
+        st.subheader("📷 Upload Skin Lesion Image")
+        uploaded = st.file_uploader(
+            "Upload a skin lesion photo for analysis",
+            type=["jpg", "jpeg", "png", "webp"],
+            help="Upload an image to get AI-powered classification and advice"
+        )
+
+        if uploaded:
+            suffix = Path(uploaded.name).suffix or ".jpg"
+            tmp_path = paths.artifacts_dir / f"_upload_{uuid.uuid4().hex}{suffix}"
+            tmp_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path.write_bytes(uploaded.getvalue())
+            st.session_state["last_image_path"] = str(tmp_path)
+
+            st.image(uploaded.getvalue(), caption="Uploaded image", use_container_width=True)
+
+            # Run classifier
+            with st.spinner("Analyzing image..."):
+                results = _run_classifier(paths, ckpt_path, device, tmp_path)
+
+            if "error" in results:
+                st.error(results["error"])
+            else:
+                st.success(f"**Prediction:** {results['label']}")
+                st.metric("Confidence", f"{results['confidence']:.1%}")
+
+                with st.expander("All class probabilities"):
+                    for cls, prob in sorted(results['all_probabilities'].items(), key=lambda x: -x[1]):
+                        st.progress(prob, text=f"{cls}: {prob:.1%}")
+
+                # Store results for advisor context
+                st.session_state["last_classification"] = results
+
+            st.divider()
+            if st.button("🔍 Get Advisor Analysis", type="primary", use_container_width=True):
+                if runner is not None:
+                    classification_context = st.session_state.get("last_classification", {})
+                    prompt = (
+                        f"Please analyze this skin lesion image and provide practical, safety-focused guidance.\n"
+                        f"Image path: {st.session_state['last_image_path']}\n"
+                        f"Classifier prediction: {classification_context.get('label', 'unknown')} "
+                        f"(confidence: {classification_context.get('confidence', 0):.1%})"
+                    )
+                    st.session_state.chat_messages.append({"role": "user", "content": prompt})
+                    with st.spinner("Advisor is analyzing..."):
+                        try:
+                            reply = run_turn(
+                                runner=runner,
+                                user_id=st.session_state.adk_user_id,
+                                session_id=st.session_state.adk_session_id,
+                                text=prompt,
+                            )
+                        except Exception as e:
+                            reply = f"**Error:** `{e}`"
+                        st.session_state.chat_messages.append({"role": "assistant", "content": reply})
+                    st.rerun()
+                else:
+                    st.error("ADK Runner not available")
+
+        st.divider()
+        if st.button("🔄 New Session", use_container_width=True):
             st.session_state.chat_messages = []
             st.session_state.adk_session_id = str(uuid.uuid4())
+            st.session_state.pop("last_image_path", None)
+            st.session_state.pop("last_classification", None)
             st.rerun()
 
-    last_path = st.session_state.get("last_image_path")
-    with c2:
-        if last_path and st.button("Ask advisor to analyze last uploaded image"):
-            st.session_state.chat_messages.append(
-                {
-                    "role": "user",
-                    "content": (
-                        "Please analyze this skin lesion image using your tools and give practical, "
-                        "safety-focused guidance. The image file path on this machine is:\n"
-                        f"{last_path}"
-                    ),
-                }
-            )
-            if runner is not None:
-                with st.spinner("Advisor is thinking…"):
-                    try:
-                        reply = run_turn(
-                            runner=runner,
-                            user_id=st.session_state.adk_user_id,
-                            session_id=st.session_state.adk_session_id,
-                            text=st.session_state.chat_messages[-1]["content"],
-                        )
-                    except Exception as e:
-                        reply = f"**Error:** `{e}`"
-                    st.session_state.chat_messages.append({"role": "assistant", "content": reply})
-            st.rerun()
+        st.caption(f"Device: `{device}`")
 
-    if last_path:
-        st.info(f"**Last uploaded image path:** `{last_path}`")
+    # Main chat area
+    st.subheader("💬 Derm Advisor Chat")
 
     if runner is None:
+        st.info("ADK Runner is not available. Please check your configuration.")
         return
 
+    # Display chat messages
     for m in st.session_state.chat_messages:
         with st.chat_message(m["role"]):
             st.markdown(m["content"])
 
-    if prompt := st.chat_input("Ask the dermatology advisor…"):
+    # Chat input
+    if prompt := st.chat_input("Ask the dermatology advisor..."):
         st.session_state.chat_messages.append({"role": "user", "content": prompt})
-        with st.spinner("Advisor is thinking…"):
+        with st.spinner("Advisor is thinking..."):
             try:
                 reply = run_turn(
                     runner=runner,
@@ -180,7 +196,7 @@ def _render_adk_chat() -> None:
 def main() -> None:
     _load_env()
     st.set_page_config(page_title="Derm Advisor", layout="wide")
-    st.title("Derm Advisor")
+    st.title("🩺 Derm Advisor")
     st.caption("Educational demo only. Not medical advice.")
 
     paths = Paths.default()
@@ -190,14 +206,7 @@ def main() -> None:
     if torch.cuda.is_available():
         device = "cuda"
 
-    tab_cls, tab_chat = st.tabs(["Lesion classifier", "Derm advisor (ADK chat)"])
-
-    with tab_cls:
-        st.write(f"Vision backend device: `{device}`")
-        _render_classifier(paths, ckpt_default, device)
-
-    with tab_chat:
-        _render_adk_chat()
+    _render_unified_advisor(paths, ckpt_default, device)
 
 
 if __name__ == "__main__":
