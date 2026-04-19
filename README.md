@@ -30,12 +30,12 @@ pip install -e .
 
 1) Configure Kaggle credentials:
 
-- Download your Kaggle API token (`kaggle.json`) from Kaggle → Account → API.
-- Put it at `~/.kaggle/kaggle.json` and set permissions:
+- Download your Kaggle API token from Kaggle → Account → API.
+- Put it at `~/.kaggle/access_token` and set permissions:
 
 ```bash
 mkdir -p ~/.kaggle
-chmod 600 ~/.kaggle/kaggle.json
+chmod 600 ~/.kaggle/access_token
 ```
 
 2) Download the dataset:
