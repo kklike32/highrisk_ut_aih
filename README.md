@@ -5,13 +5,15 @@ reproducible **deep-learning training/evaluation pipeline** for dermatology imag
 
 ## What you get
 
-- **ADK agent** (`agents/derm_advisor_agent/agent.py`)
+- **ADK agent** (shared definition in `src/derm_advisor/adk_agent.py`, re-exported from `agents/derm_advisor_agent/agent.py` for `adk run` / `adk web`)
   - Tool-driven image classification (`classify_lesion(image_path)`)
   - Safety-guarded, non-prescriptive triage tool (`safety_triage`)
 - **Training pipeline** (PyTorch + timm)
   - Fine-tune a strong pretrained backbone (default: ConvNeXt Tiny IN22K)
   - Outputs `reports/metrics.json` and plots (`reports/loss_curve.png`, `reports/val_accuracy_curve.png`)
-- **Streamlit demo UI** (`apps/streamlit_inference.py`) for uploading an image and seeing predictions
+- **Streamlit demo UI** (`apps/streamlit_inference.py`)
+  - **Lesion classifier** tab (upload + probabilities)
+  - **Derm advisor (ADK chat)** tab — uses the same ADK `Runner` + Gemini stack as `adk web`, so you get a full chat UI without the CLI (single browser app)
 
 ## Setup
 
@@ -81,6 +83,10 @@ Artifacts:
 ```bash
 streamlit run apps/streamlit_inference.py
 ```
+
+Put your Gemini API key in `agents/derm_advisor_agent/.env` (see below). In the **Derm advisor** tab you can chat with the agent; after you upload an image in **Lesion classifier**, use **Ask advisor to analyze last uploaded image** so the agent receives the local file path for `classify_lesion`.
+
+You can still run **`adk web`** separately for debugging (another port). For day-to-day use, the Streamlit app is intended to replace needing the CLI.
 
 ## Run the ADK agent
 
