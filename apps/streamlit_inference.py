@@ -1,16 +1,23 @@
+"""Streamlit UI for lesion classification and local-model advisor chat."""
+
 from __future__ import annotations
 
-import json
 import uuid
 from pathlib import Path
 
+import numpy as np
 import streamlit as st
 import torch
 from dotenv import load_dotenv
+from PIL import Image
 
-from derm_advisor.adk_agent import root_agent
 from derm_advisor.adk_runner import create_runner, run_turn
-from derm_advisor.config import Paths
+from derm_advisor.config import (
+    DEFAULT_OLLAMA_API_BASE,
+    Paths,
+    local_llm_model_name,
+    ollama_api_base,
+)
 from derm_advisor.vision.model import ModelConfig, create_model, predict_proba
 from derm_advisor.vision.transforms import build_eval_tfms
 
@@ -38,13 +45,41 @@ def _load_checkpoint(ckpt_path: Path, device: str):
 def _ensure_adk_runner():
     if st.session_state.get("adk_runner") is None:
         try:
+            # Import lazily so the UI can show setup guidance instead of
+            # failing during module import when ADK/LiteLLM is not available.
+            from derm_advisor.adk_agent import root_agent
+
             st.session_state.adk_runner = create_runner(root_agent)
             st.session_state.pop("adk_runner_error", None)
         except Exception as e:
+            st.session_state.pop("adk_runner", None)
             st.session_state.adk_runner_error = str(e)
 
 
-def _run_classifier(paths: Paths, ckpt_path: Path, device: str, image_path: Path) -> dict:
+def _render_local_model_help(err: str) -> None:
+    st.warning(f"Could not initialize the advisor runtime ({err}).")
+    st.markdown(
+        "The chat agent now expects a local Ollama server with a tool-capable model."
+    )
+    st.code(
+        "\n".join(
+            [
+                "pip install -r requirements.txt",
+                "docker compose -f compose.local-model.yml up -d",
+                "docker compose -f compose.local-model.yml "
+                f"exec ollama ollama pull {local_llm_model_name()}",
+            ]
+        ),
+        language="bash",
+    )
+    st.caption(
+        "Configured endpoint: "
+        f"`{ollama_api_base()}`. The default is `{DEFAULT_OLLAMA_API_BASE}` "
+        "and can be overridden with `OLLAMA_API_BASE`."
+    )
+
+
+def _run_classifier(ckpt_path: Path, device: str, image_path: Path) -> dict:
     """Run the classifier on an image and return results."""
     if not ckpt_path.exists():
         return {"error": f"Checkpoint not found: {ckpt_path}"}
@@ -52,9 +87,6 @@ def _run_classifier(paths: Paths, ckpt_path: Path, device: str, image_path: Path
     model, class_names, ckpt = _load_checkpoint(ckpt_path, device)
     image_size = int(ckpt["train_config"].get("image_size", 224))
     tfm = build_eval_tfms(image_size)
-
-    import numpy as np
-    from PIL import Image
 
     img = Image.open(image_path).convert("RGB")
     arr = np.array(img)
@@ -67,7 +99,9 @@ def _run_classifier(paths: Paths, ckpt_path: Path, device: str, image_path: Path
     return {
         "label": class_names[top_idx],
         "confidence": conf,
-        "all_probabilities": {class_names[i]: float(proba[i]) for i in range(len(class_names))}
+        "all_probabilities": {
+            class_names[i]: float(proba[i]) for i in range(len(class_names))
+        },
     }
 
 
@@ -75,14 +109,9 @@ def _render_unified_advisor(paths: Paths, ckpt_path: Path, device: str) -> None:
     """Single unified interface with image upload and advisor chat."""
 
     # Initialize ADK runner
-    if err := st.session_state.get("adk_runner_error"):
-        st.warning(
-            f"Could not initialize ADK Runner ({err}). "
-            "Install deps with `pip install -r requirements.txt` and set `GOOGLE_API_KEY` in "
-            "`agents/derm_advisor_agent/.env`."
-        )
-
     _ensure_adk_runner()
+    if err := st.session_state.get("adk_runner_error"):
+        _render_local_model_help(err)
     runner = st.session_state.get("adk_runner")
 
     # Session state initialization
@@ -99,7 +128,7 @@ def _render_unified_advisor(paths: Paths, ckpt_path: Path, device: str) -> None:
         uploaded = st.file_uploader(
             "Upload a skin lesion photo for analysis",
             type=["jpg", "jpeg", "png", "webp"],
-            help="Upload an image to get AI-powered classification and advice"
+            help="Upload an image to get AI-powered classification and advice",
         )
 
         if uploaded:
@@ -113,7 +142,7 @@ def _render_unified_advisor(paths: Paths, ckpt_path: Path, device: str) -> None:
 
             # Run classifier
             with st.spinner("Analyzing image..."):
-                results = _run_classifier(paths, ckpt_path, device, tmp_path)
+                results = _run_classifier(ckpt_path, device, tmp_path)
 
             if "error" in results:
                 st.error(results["error"])
@@ -122,7 +151,9 @@ def _render_unified_advisor(paths: Paths, ckpt_path: Path, device: str) -> None:
                 st.metric("Confidence", f"{results['confidence']:.1%}")
 
                 with st.expander("All class probabilities"):
-                    for cls, prob in sorted(results['all_probabilities'].items(), key=lambda x: -x[1]):
+                    for cls, prob in sorted(
+                        results["all_probabilities"].items(), key=lambda x: -x[1]
+                    ):
                         st.progress(prob, text=f"{cls}: {prob:.1%}")
 
                 # Store results for advisor context
@@ -133,7 +164,8 @@ def _render_unified_advisor(paths: Paths, ckpt_path: Path, device: str) -> None:
                 if runner is not None:
                     classification_context = st.session_state.get("last_classification", {})
                     prompt = (
-                        f"Please analyze this skin lesion image and provide practical, safety-focused guidance.\n"
+                        "Please analyze this skin lesion image and provide "
+                        "practical, safety-focused guidance.\n"
                         f"Image path: {st.session_state['last_image_path']}\n"
                         f"Classifier prediction: {classification_context.get('label', 'unknown')} "
                         f"(confidence: {classification_context.get('confidence', 0):.1%})"
@@ -149,7 +181,9 @@ def _render_unified_advisor(paths: Paths, ckpt_path: Path, device: str) -> None:
                             )
                         except Exception as e:
                             reply = f"**Error:** `{e}`"
-                        st.session_state.chat_messages.append({"role": "assistant", "content": reply})
+                        st.session_state.chat_messages.append(
+                            {"role": "assistant", "content": reply}
+                        )
                     st.rerun()
                 else:
                     st.error("ADK Runner not available")
@@ -168,7 +202,11 @@ def _render_unified_advisor(paths: Paths, ckpt_path: Path, device: str) -> None:
     st.subheader("💬 Derm Advisor Chat")
 
     if runner is None:
-        st.info("ADK Runner is not available. Please check your configuration.")
+        st.info(
+            "The local-model advisor is not available yet. "
+            f"Start Ollama at `{ollama_api_base()}` and make sure "
+            f"`{local_llm_model_name()}` is installed."
+        )
         return
 
     # Display chat messages
@@ -194,6 +232,7 @@ def _render_unified_advisor(paths: Paths, ckpt_path: Path, device: str) -> None:
 
 
 def main() -> None:
+    """Render the Streamlit demo."""
     _load_env()
     st.set_page_config(page_title="Derm Advisor", layout="wide")
     st.title("🩺 Derm Advisor")

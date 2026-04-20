@@ -1,4 +1,5 @@
 google-adk>=1.28.0
+litellm>=1.83.3
 
 # ML / vision
 torch
@@ -22,4 +23,3 @@ python-dotenv>=1.0.0
 
 # Optional (Kaggle downloads)
 kaggle>=1.6.0
-

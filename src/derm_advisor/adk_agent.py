@@ -1,11 +1,17 @@
+"""ADK agent definition for the local-model derm advisor experience."""
+
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from google.adk.agents.llm_agent import Agent
+from google.adk.models.lite_llm import LiteLlm
 
-from derm_advisor.config import Paths
+from derm_advisor.config import Paths, local_llm_kwargs, local_llm_model, ollama_api_base
 from derm_advisor.vision.inference import classify_image
+
+os.environ.setdefault("OLLAMA_API_BASE", ollama_api_base())
 
 
 def classify_lesion(image_path: str) -> dict:
@@ -50,9 +56,10 @@ def safety_triage(label: str, confidence: float) -> dict:
         return {
             "risk_level": "higher",
             "guidance": (
-                "This result can be wrong; however, because the model sees potentially higher-risk features, "
-                "please arrange an in-person dermatology evaluation soon. If it’s changing quickly, bleeding, "
-                "or painful, seek urgent care."
+                "This result can be wrong; however, because the model sees "
+                "potentially higher-risk features, please arrange an in-person "
+                "dermatology evaluation soon. If it’s changing quickly, "
+                "bleeding, or painful, seek urgent care."
             ),
         }
 
@@ -60,28 +67,35 @@ def safety_triage(label: str, confidence: float) -> dict:
         return {
             "risk_level": "uncertain",
             "guidance": (
-                "The model is not confident. Consider retaking the photo in bright, indirect light, "
-                "include a ruler/coin for scale, and consult a clinician if you’re concerned."
+                "The model is not confident. Consider retaking the photo in "
+                "bright, indirect light, include a ruler/coin for scale, and "
+                "consult a clinician if you’re concerned."
             ),
         }
 
     return {
         "risk_level": "lower",
         "guidance": (
-            "This appears lower-risk by the model, but this is not a diagnosis. Monitor for ABCDE changes "
-            "(asymmetry, border, color, diameter, evolution) and seek care if any red flags appear."
+            "This appears lower-risk by the model, but this is not a "
+            "diagnosis. Monitor for ABCDE changes (asymmetry, border, color, "
+            "diameter, evolution) and seek care if any red flags appear."
         ),
     }
 
 
 root_agent = Agent(
-    model="gemini-flash-latest",
+    model=LiteLlm(model=local_llm_model(), **local_llm_kwargs()),
     name="derm_advisor_agent",
-    description="A virtual dermatology health advisor that can classify lesion photos and provide safety-guarded guidance.",
+    description=(
+        "A virtual dermatology health advisor that can classify lesion photos "
+        "and provide safety-guarded guidance."
+    ),
     instruction=(
         "You are a virtual dermatology health advisor.\n"
-        "- When the user gives a local filesystem path to an image, call classify_lesion with that path.\n"
-        "- After classification, call safety_triage with the predicted label and confidence.\n"
+        "- When the user gives a local filesystem path to an image, call "
+        "classify_lesion with that path.\n"
+        "- After classification, call safety_triage with the predicted label "
+        "and confidence.\n"
         "- NEVER prescribe medications or claim a definitive diagnosis.\n"
         "- Always include safety guidance and when to seek professional care.\n"
         "- Be concise and use everyday language.\n"
