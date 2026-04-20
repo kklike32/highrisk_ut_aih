@@ -27,7 +27,11 @@ def main() -> None:
     This script copies files by default (safe everywhere). Use --symlink if you prefer symlinks.
     """
     p = argparse.ArgumentParser()
-    p.add_argument("--ham-root", required=True, help="Directory containing HAM10000 images and HAM10000_metadata.csv")
+    p.add_argument(
+        "--ham-root",
+        required=True,
+        help="Directory containing HAM10000 images and HAM10000_metadata.csv",
+    )
     p.add_argument("--out", required=True, help="Output dataset root (will create train/val/test).")
     p.add_argument("--val-size", type=float, default=0.15)
     p.add_argument("--test-size", type=float, default=0.15)
@@ -93,4 +97,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

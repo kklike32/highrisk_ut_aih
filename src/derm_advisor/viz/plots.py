@@ -11,7 +11,7 @@ def plot_training_curves(metrics_json: str | Path, out_dir: str | Path) -> list[
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    data = json.loads(metrics_json.read_text())
+    data = json.loads(metrics_json.read_text(encoding="utf-8"))
     history = data.get("history", [])
     if not history:
         raise ValueError("No training history found in metrics.json")
@@ -54,4 +54,3 @@ def plot_training_curves(metrics_json: str | Path, out_dir: str | Path) -> list[
     paths.append(acc_path)
 
     return paths
-
