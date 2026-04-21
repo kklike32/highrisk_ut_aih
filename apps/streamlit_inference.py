@@ -15,6 +15,7 @@ from derm_advisor.adk_runner import create_runner, run_turn
 from derm_advisor.config import (
     DEFAULT_OLLAMA_API_BASE,
     Paths,
+    classifier_checkpoint_path,
     local_llm_model_name,
     ollama_api_base,
 )
@@ -239,7 +240,7 @@ def main() -> None:
     st.caption("Educational demo only. Not medical advice.")
 
     paths = Paths.default()
-    ckpt_default = paths.artifacts_dir / "best_model.pt"
+    ckpt_default = classifier_checkpoint_path()
 
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     if torch.cuda.is_available():

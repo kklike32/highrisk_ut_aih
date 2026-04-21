@@ -13,6 +13,8 @@ image datasets (e.g., HAM10000 / ISIC-style).
 - **Training pipeline** (PyTorch + timm)
   - Fine-tune a strong pretrained backbone (default: ConvNeXt Tiny IN22K)
   - Outputs `reports/metrics.json` and plots (`reports/loss_curve.png`, `reports/val_accuracy_curve.png`)
+  - Includes a separate ISIC / HAM10000 lesion-level pipeline that writes to its own run directories
+    without replacing the legacy `best_model.pt` path
 - **Streamlit demo UI** (`apps/streamlit_inference.py`)
   - **Lesion classifier** tab (upload + probabilities)
   - **Derm advisor (ADK chat)** tab — uses the same ADK `Runner` + local Ollama model as `adk run`, so you get a full chat UI without the CLI (single browser app)
@@ -88,6 +90,20 @@ data/ham10000_imagefolder/
   test/<class_name>/*.jpg
 ```
 
+## Prepare the lesion-level ISIC / HAM10000 split
+
+The existing `prepare_ham10000_imagefolder.py` pipeline stays as-is. For the
+new ISIC work, use the dedicated lesion-level split script instead:
+
+```bash
+python scripts/prepare_ham10000_lesion_imagefolder.py \
+  --ham-root data/kaggle_ham10000 \
+  --out data/ham10000_lesion_imagefolder
+```
+
+This writes a separate dataset root plus `split_summary.json` and keeps multiple
+images from the same lesion out of different splits.
+
 ## Train + generate accuracy visualizations
 
 ```bash
@@ -100,6 +116,31 @@ Artifacts:
 - `reports/loss_curve.png`
 - `reports/val_accuracy_curve.png`
 
+## Train the new ISIC model without replacing the current checkpoint
+
+This pipeline writes to its own artifact and report subdirectories:
+
+```bash
+python scripts/train_isic_model.py \
+  --dataset-root data/ham10000_lesion_imagefolder \
+  --run-name isic_convnext_tiny \
+  --checkpoint-name isic_convnext_tiny_best.pt \
+  --epochs 15 \
+  --batch-size 32 \
+  --image-size 224 \
+  --backbone convnext_tiny.fb_in22k \
+  --device cuda
+```
+
+Outputs:
+- `artifacts/isic_convnext_tiny/isic_convnext_tiny_best.pt`
+- `artifacts/isic_convnext_tiny/last_model.pt`
+- `reports/isic_convnext_tiny/metrics.json`
+- `reports/isic_convnext_tiny/test_predictions.csv`
+- `reports/isic_convnext_tiny/*.png`
+
+Detailed Colab instructions live in `docs/isic_colab_training.md`.
+
 ## Run the Streamlit demo
 
 ```bash
@@ -109,6 +150,13 @@ streamlit run apps/streamlit_inference.py
 The advisor chat expects the local Ollama runtime above to be available. In the **Derm advisor** tab you can chat with
 the agent; after you upload an image in the sidebar, use **Get Advisor Analysis** so the agent receives the local file
 path for `classify_lesion`.
+
+To point the app at the new ISIC checkpoint without changing the existing
+default, set:
+
+```bash
+export DERM_ADVISOR_CLASSIFIER_CKPT="artifacts/isic_convnext_tiny/isic_convnext_tiny_best.pt"
+```
 
 You can still run **`adk web`** separately for debugging (another port). For day-to-day use, the Streamlit app is intended to replace needing the CLI.
 
@@ -126,6 +174,9 @@ cp agents/derm_advisor_agent/.env.example agents/derm_advisor_agent/.env
 cd agents
 adk run derm_advisor_agent
 ```
+
+The agent also respects `DERM_ADVISOR_CLASSIFIER_CKPT` if you want it to use the
+new ISIC checkpoint instead of the legacy default.
 
 In chat, provide a local image path and ask for a safety-guarded summary. The agent will use `classify_lesion`.
 The Python agent definition in `agents/derm_advisor_agent/agent.py` is the canonical entrypoint for the local-model

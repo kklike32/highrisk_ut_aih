@@ -8,6 +8,7 @@ from pathlib import Path
 
 DEFAULT_LOCAL_LLM_MODEL = "qwen3:8b"
 DEFAULT_OLLAMA_API_BASE = "http://localhost:11434"
+DEFAULT_CLASSIFIER_CKPT = "artifacts/best_model.pt"
 _TRUE_VALUES = {"1", "true", "yes", "on"}
 _FALSE_VALUES = {"0", "false", "no", "off"}
 
@@ -66,3 +67,15 @@ def ollama_api_base() -> str:
     """Return the configured Ollama HTTP endpoint."""
     raw_value = os.getenv("OLLAMA_API_BASE", DEFAULT_OLLAMA_API_BASE).strip()
     return raw_value or DEFAULT_OLLAMA_API_BASE
+
+
+def classifier_checkpoint_path() -> Path:
+    """Return the configured classifier checkpoint path."""
+    repo_root = Paths.default().repo_root
+    raw_value = os.getenv("DERM_ADVISOR_CLASSIFIER_CKPT", DEFAULT_CLASSIFIER_CKPT).strip()
+    if not raw_value:
+        raw_value = DEFAULT_CLASSIFIER_CKPT
+    ckpt_path = Path(raw_value).expanduser()
+    if ckpt_path.is_absolute():
+        return ckpt_path
+    return repo_root / ckpt_path

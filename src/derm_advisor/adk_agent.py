@@ -8,7 +8,12 @@ from pathlib import Path
 from google.adk.agents.llm_agent import Agent
 from google.adk.models.lite_llm import LiteLlm
 
-from derm_advisor.config import Paths, local_llm_kwargs, local_llm_model, ollama_api_base
+from derm_advisor.config import (
+    classifier_checkpoint_path,
+    local_llm_kwargs,
+    local_llm_model,
+    ollama_api_base,
+)
 from derm_advisor.vision.inference import classify_image
 
 os.environ.setdefault("OLLAMA_API_BASE", ollama_api_base())
@@ -24,8 +29,7 @@ def classify_lesion(image_path: str) -> dict:
     Output:
       dict with label/confidence + probabilities.
     """
-    paths = Paths.default()
-    ckpt = paths.artifacts_dir / "best_model.pt"
+    ckpt = classifier_checkpoint_path()
     if not ckpt.exists():
         return {
             "status": "error",
