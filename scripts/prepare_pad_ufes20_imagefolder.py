@@ -13,6 +13,13 @@ SUPPORTED_DIAGNOSTICS = ("ACK", "BCC", "MEL", "NEV", "SCC", "SEK")
 REQUIRED_COLUMNS = {"img_id", "lesion_id", "diagnostic"}
 
 
+def _normalize_image_key(value: str) -> str:
+    text = str(value).strip().replace("\\", "/")
+    if not text or text.lower() == "nan":
+        return ""
+    return Path(text).stem.strip().lower()
+
+
 def _find_metadata_csv(root: Path) -> Path:
     for path in sorted(root.rglob("*.csv")):
         try:
@@ -33,7 +40,9 @@ def _find_images(root: Path) -> dict[str, Path]:
     images: dict[str, Path] = {}
     for path in root.rglob("*"):
         if path.is_file() and path.suffix.lower() in exts:
-            images[path.stem] = path
+            key = _normalize_image_key(path.name)
+            if key and key not in images:
+                images[key] = path
     return images
 
 
@@ -46,10 +55,12 @@ def _normalize_frame(frame: pd.DataFrame) -> pd.DataFrame:
         raise SystemExit(f"Missing required columns in PAD-UFES-20 metadata: {missing}")
 
     normalized["img_id"] = normalized["img_id"].astype(str).str.strip()
+    normalized["image_key"] = normalized["img_id"].map(_normalize_image_key)
     normalized["lesion_id"] = normalized["lesion_id"].astype(str).str.strip()
     normalized["diagnostic"] = normalized["diagnostic"].astype(str).str.strip().str.upper()
     normalized = normalized[
         normalized["img_id"].ne("")
+        & normalized["image_key"].ne("")
         & normalized["lesion_id"].ne("")
         & normalized["diagnostic"].isin(SUPPORTED_DIAGNOSTICS)
     ].copy()
@@ -112,9 +123,9 @@ def _materialize_split(
     symlink: bool,
 ) -> None:
     for _, row in frame.iterrows():
-        img_id = str(row["img_id"])
+        image_key = str(row["image_key"])
         label = str(row["diagnostic"])
-        src = images[img_id]
+        src = images[image_key]
         dst_dir = out_root / split / label
         dst_dir.mkdir(parents=True, exist_ok=True)
         dst = dst_dir / src.name
@@ -163,9 +174,17 @@ def main() -> None:
 
     frame = pd.read_csv(metadata_path)
     frame = _normalize_frame(frame)
-    frame = frame[frame["img_id"].isin(images.keys())].copy()
+    frame = frame[frame["image_key"].isin(images.keys())].copy()
     if frame.empty:
-        raise SystemExit("No PAD-UFES-20 images matched metadata img_id values. Check the extraction path.")
+        sample_metadata_ids = (
+            pd.read_csv(metadata_path, usecols=["img_id"], nrows=5)["img_id"].astype(str).tolist()
+        )
+        sample_image_keys = sorted(images.keys())[:5]
+        raise SystemExit(
+            "No PAD-UFES-20 images matched metadata img_id values after normalization. "
+            f"Sample metadata img_id values: {sample_metadata_ids}. "
+            f"Sample discovered image keys: {sample_image_keys}."
+        )
 
     grouped = _build_group_frame(frame)
     train_ids, val_ids, test_ids = _stratified_group_split(
