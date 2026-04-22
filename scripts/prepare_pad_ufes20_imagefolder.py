@@ -11,6 +11,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 
 SUPPORTED_DIAGNOSTICS = ("ACK", "BCC", "MEL", "NEV", "SCC", "SEK")
 REQUIRED_COLUMNS = {"img_id", "lesion_id", "diagnostic"}
+GROUP_COLUMN = "lesion_group_id"
 
 
 def _normalize_image_key(value: str) -> str:
@@ -57,6 +58,8 @@ def _normalize_frame(frame: pd.DataFrame) -> pd.DataFrame:
     normalized["img_id"] = normalized["img_id"].astype(str).str.strip()
     normalized["image_key"] = normalized["img_id"].map(_normalize_image_key)
     normalized["lesion_id"] = normalized["lesion_id"].astype(str).str.strip()
+    if "patient_id" in normalized.columns:
+        normalized["patient_id"] = normalized["patient_id"].astype(str).str.strip()
     normalized["diagnostic"] = normalized["diagnostic"].astype(str).str.strip().str.upper()
     normalized = normalized[
         normalized["img_id"].ne("")
@@ -73,18 +76,58 @@ def _normalize_frame(frame: pd.DataFrame) -> pd.DataFrame:
     return normalized
 
 
+def _build_lesion_group_ids(frame: pd.DataFrame) -> pd.Series:
+    if "patient_id" not in frame.columns:
+        return frame["lesion_id"].astype(str)
+
+    patient_ids = frame["patient_id"].astype(str).str.strip()
+    has_patient = patient_ids.ne("") & patient_ids.str.lower().ne("nan")
+    lesion_ids = frame["lesion_id"].astype(str)
+    group_ids = lesion_ids.copy()
+    group_ids.loc[has_patient] = patient_ids.loc[has_patient] + "::" + lesion_ids.loc[has_patient]
+    return group_ids
+
+
+def _drop_conflicting_groups(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, object]]:
+    diagnostic_counts = frame.groupby(GROUP_COLUMN)["diagnostic"].nunique()
+    conflicting_groups = diagnostic_counts[diagnostic_counts > 1].index.tolist()
+    if not conflicting_groups:
+        return frame, {"num_groups": 0, "num_rows": 0, "sample_groups": []}
+
+    conflicting_rows = frame[frame[GROUP_COLUMN].isin(conflicting_groups)].copy()
+    cleaned = frame[~frame[GROUP_COLUMN].isin(conflicting_groups)].copy()
+    if cleaned.empty:
+        raise SystemExit(
+            "All PAD-UFES-20 lesion groups became ambiguous after grouping by patient_id + lesion_id."
+        )
+
+    sample_groups = [str(value) for value in conflicting_groups[:10]]
+    print(
+        "Dropping ambiguous lesion groups with multiple diagnostics after grouping by "
+        f"patient_id + lesion_id: groups={len(conflicting_groups)} rows={len(conflicting_rows)}"
+    )
+    if sample_groups:
+        print(f"  sample ambiguous groups: {sample_groups}")
+
+    return cleaned, {
+        "num_groups": int(len(conflicting_groups)),
+        "num_rows": int(len(conflicting_rows)),
+        "sample_groups": sample_groups,
+    }
+
+
 def _build_group_frame(frame: pd.DataFrame) -> pd.DataFrame:
     grouped = (
-        frame.groupby("lesion_id")
+        frame.groupby(GROUP_COLUMN)
         .agg(
             diagnostic=("diagnostic", "first"),
             num_images=("img_id", "count"),
         )
         .reset_index()
     )
-    lesion_dx_counts = frame.groupby("lesion_id")["diagnostic"].nunique()
+    lesion_dx_counts = frame.groupby(GROUP_COLUMN)["diagnostic"].nunique()
     if int(lesion_dx_counts.max()) != 1:
-        raise SystemExit("Found lesion_id values mapped to multiple diagnosis labels.")
+        raise SystemExit("Found lesion group values mapped to multiple diagnosis labels.")
     return grouped
 
 
@@ -96,7 +139,7 @@ def _stratified_group_split(
     seed: int,
 ) -> tuple[set[str], set[str], set[str]]:
     labels = grouped["diagnostic"].astype(str).to_numpy()
-    lesion_ids = grouped["lesion_id"].astype(str).to_numpy()
+    lesion_ids = grouped[GROUP_COLUMN].astype(str).to_numpy()
 
     outer = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=seed)
     train_val_idx, test_idx = next(outer.split(grouped, labels))
@@ -104,7 +147,7 @@ def _stratified_group_split(
     test_ids = set(lesion_ids[test_idx].tolist())
 
     inner_labels = train_val["diagnostic"].astype(str).to_numpy()
-    inner_ids = train_val["lesion_id"].astype(str).to_numpy()
+    inner_ids = train_val[GROUP_COLUMN].astype(str).to_numpy()
     val_frac_of_train_val = val_size / (1.0 - test_size)
     inner = StratifiedShuffleSplit(n_splits=1, test_size=val_frac_of_train_val, random_state=seed)
     train_idx, val_idx = next(inner.split(train_val, inner_labels))
@@ -139,9 +182,10 @@ def _materialize_split(
 
 def _split_summary(frame: pd.DataFrame) -> dict[str, object]:
     class_counts = frame["diagnostic"].value_counts().sort_index()
+    lesion_series = frame[GROUP_COLUMN] if GROUP_COLUMN in frame.columns else frame["lesion_id"]
     summary: dict[str, object] = {
         "num_images": int(len(frame)),
-        "num_lesions": int(frame["lesion_id"].nunique()),
+        "num_lesions": int(lesion_series.nunique()),
         "class_counts": {label: int(count) for label, count in class_counts.items()},
     }
     if "patient_id" in frame.columns:
@@ -185,6 +229,8 @@ def main() -> None:
             f"Sample metadata img_id values: {sample_metadata_ids}. "
             f"Sample discovered image keys: {sample_image_keys}."
         )
+    frame[GROUP_COLUMN] = _build_lesion_group_ids(frame)
+    frame, dropped_conflicts = _drop_conflicting_groups(frame)
 
     grouped = _build_group_frame(frame)
     train_ids, val_ids, test_ids = _stratified_group_split(
@@ -195,9 +241,9 @@ def main() -> None:
     )
 
     split_frames = {
-        "train": frame[frame["lesion_id"].isin(train_ids)].reset_index(drop=True),
-        "val": frame[frame["lesion_id"].isin(val_ids)].reset_index(drop=True),
-        "test": frame[frame["lesion_id"].isin(test_ids)].reset_index(drop=True),
+        "train": frame[frame[GROUP_COLUMN].isin(train_ids)].reset_index(drop=True),
+        "val": frame[frame[GROUP_COLUMN].isin(val_ids)].reset_index(drop=True),
+        "test": frame[frame[GROUP_COLUMN].isin(test_ids)].reset_index(drop=True),
     }
 
     for split_name, split_frame in split_frames.items():
@@ -226,6 +272,11 @@ def main() -> None:
         "test_size": args.test_size,
         "symlink": bool(args.symlink),
         "supported_diagnostics": list(SUPPORTED_DIAGNOSTICS),
+        "lesion_grouping": {
+            "column": GROUP_COLUMN,
+            "rule": "patient_id + lesion_id (fallback: lesion_id when patient_id is missing)",
+            "dropped_conflicting_groups": dropped_conflicts,
+        },
         "splits": {
             split_name: _split_summary(split_frame)
             for split_name, split_frame in split_frames.items()
@@ -240,7 +291,7 @@ def main() -> None:
     for split_name, split_frame in split_frames.items():
         print(
             f"  {split_name}: images={len(split_frame)} "
-            f"lesions={split_frame['lesion_id'].nunique()}"
+            f"lesions={split_frame[GROUP_COLUMN].nunique()}"
         )
     print(f"  lesion overlap across splits: {overlap_exists}")
     print(f"  metadata CSV: {metadata_path}")
