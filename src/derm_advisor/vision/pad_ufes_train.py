@@ -12,44 +12,44 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from derm_advisor.config import Paths
-from derm_advisor.vision.isic_dataset import (
-    ISICPathLabelDataset,
-    load_isic_split_from_imagefolder,
+from derm_advisor.vision.model import ModelConfig, create_model
+from derm_advisor.vision.pad_ufes_dataset import (
+    PADUFESPathLabelDataset,
+    load_pad_ufes_split_from_imagefolder,
 )
-from derm_advisor.vision.isic_evaluation import (
-    ISICEvalArtifacts,
+from derm_advisor.vision.pad_ufes_evaluation import (
+    PADUFESEvalArtifacts,
     compute_class_weights,
     evaluate_predictions,
     save_prediction_records,
     summarize_samples,
 )
-from derm_advisor.vision.model import ModelConfig, create_model
 from derm_advisor.vision.transforms import build_eval_tfms, build_train_tfms
 
 
 @dataclass(frozen=True)
-class ISICTrainConfig:
+class PADUFESTrainConfig:
     dataset_root: str
     image_size: int = 224
-    backbone: str = "convnext_tiny.fb_in22k"
+    backbone: str = "tf_efficientnetv2_s.in21k"
     pretrained: bool = True
-    epochs: int = 15
-    batch_size: int = 32
+    epochs: int = 20
+    batch_size: int = 16
     lr: float = 3e-4
     weight_decay: float = 1e-4
     num_workers: int = 2
     device: str = "cuda"
     seed: int = 42
-    run_name: str = "isic_convnext_tiny"
+    run_name: str = "pad_ufes20_efficientnetv2_s"
     artifacts_dir: str | None = None
     reports_dir: str | None = None
-    checkpoint_name: str = "isic_convnext_tiny_best.pt"
+    checkpoint_name: str = "pad_ufes20_efficientnetv2_s_best.pt"
     use_class_weights: bool = True
     save_last_checkpoint: bool = True
 
 
 @dataclass(frozen=True)
-class ISICOutputPaths:
+class PADUFESOutputPaths:
     artifact_dir: Path
     report_dir: Path
     best_checkpoint: Path
@@ -76,20 +76,24 @@ def _pick_device(preferred: str) -> str:
     return "cpu"
 
 
-def _resolve_output_paths(cfg: ISICTrainConfig, paths: Paths) -> ISICOutputPaths:
+def _resolve_output_paths(cfg: PADUFESTrainConfig, paths: Paths) -> PADUFESOutputPaths:
     artifact_root = (
         Path(cfg.artifacts_dir).expanduser().resolve()
         if cfg.artifacts_dir
         else paths.artifacts_dir
     )
-    report_root = Path(cfg.reports_dir).expanduser().resolve() if cfg.reports_dir else paths.reports_dir
+    report_root = (
+        Path(cfg.reports_dir).expanduser().resolve()
+        if cfg.reports_dir
+        else paths.reports_dir
+    )
 
     artifact_dir = artifact_root / cfg.run_name
     report_dir = report_root / cfg.run_name
     artifact_dir.mkdir(parents=True, exist_ok=True)
     report_dir.mkdir(parents=True, exist_ok=True)
 
-    return ISICOutputPaths(
+    return PADUFESOutputPaths(
         artifact_dir=artifact_dir,
         report_dir=report_dir,
         best_checkpoint=artifact_dir / cfg.checkpoint_name,
@@ -103,7 +107,7 @@ def _checkpoint_payload(
     model: nn.Module,
     *,
     class_names: list[str],
-    cfg: ISICTrainConfig,
+    cfg: PADUFESTrainConfig,
     model_cfg: ModelConfig,
     extra: dict[str, Any],
 ) -> dict[str, Any]:
@@ -129,7 +133,7 @@ def _verify_class_names(
     test_class_names: list[str],
 ) -> None:
     if train_class_names != val_class_names or train_class_names != test_class_names:
-        raise ValueError("Train/val/test class folders do not match. Rebuild the ISIC dataset splits.")
+        raise ValueError("Train/val/test class folders do not match. Rebuild the PAD-UFES-20 splits.")
 
 
 def _unpack_batch(batch):
@@ -146,7 +150,7 @@ def _run_eval(
     device: str,
     class_names: list[str],
     loss_fn: nn.Module,
-) -> ISICEvalArtifacts:
+) -> PADUFESEvalArtifacts:
     model.eval()
     y_true: list[int] = []
     y_pred: list[int] = []
@@ -181,21 +185,21 @@ def _run_eval(
     )
 
 
-def train_isic_model(cfg: ISICTrainConfig) -> Path:
+def train_pad_ufes_model(cfg: PADUFESTrainConfig) -> Path:
     _seed_all(cfg.seed)
     paths = Paths.default()
     output_paths = _resolve_output_paths(cfg, paths)
     dataset_root = Path(cfg.dataset_root).expanduser().resolve()
 
-    train_samples, train_class_names = load_isic_split_from_imagefolder(dataset_root, "train")
-    val_samples, val_class_names = load_isic_split_from_imagefolder(dataset_root, "val")
-    test_samples, test_class_names = load_isic_split_from_imagefolder(dataset_root, "test")
+    train_samples, train_class_names = load_pad_ufes_split_from_imagefolder(dataset_root, "train")
+    val_samples, val_class_names = load_pad_ufes_split_from_imagefolder(dataset_root, "val")
+    test_samples, test_class_names = load_pad_ufes_split_from_imagefolder(dataset_root, "test")
     _verify_class_names(train_class_names, val_class_names, test_class_names)
     class_names = train_class_names
 
-    train_ds = ISICPathLabelDataset(train_samples, transform=build_train_tfms(cfg.image_size))
-    val_ds = ISICPathLabelDataset(val_samples, transform=build_eval_tfms(cfg.image_size))
-    test_ds = ISICPathLabelDataset(
+    train_ds = PADUFESPathLabelDataset(train_samples, transform=build_train_tfms(cfg.image_size))
+    val_ds = PADUFESPathLabelDataset(val_samples, transform=build_eval_tfms(cfg.image_size))
+    test_ds = PADUFESPathLabelDataset(
         test_samples,
         transform=build_eval_tfms(cfg.image_size),
         return_path=True,

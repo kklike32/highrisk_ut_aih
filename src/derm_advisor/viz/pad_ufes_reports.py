@@ -30,9 +30,9 @@ def plot_workflow_diagram(out_dir: str | Path) -> Path:
     ax.axis("off")
 
     boxes = [
-        (0.05, "HAM10000 download"),
+        (0.05, "PAD-UFES-20 upload"),
         (0.25, "Lesion-level split"),
-        (0.45, "ConvNeXt training"),
+        (0.45, "EffNetV2-S training"),
         (0.65, "Evaluation bundle"),
         (0.85, "Streamlit + ADK"),
     ]
@@ -49,7 +49,7 @@ def plot_workflow_diagram(out_dir: str | Path) -> Path:
             arrowprops={"arrowstyle": "->", "linewidth": 1.8},
         )
 
-    ax.set_title("ISIC / HAM10000 workflow", fontsize=14, pad=14)
+    ax.set_title("PAD-UFES-20 smartphone-lesion workflow", fontsize=14, pad=14)
     out_path = out_dir / "workflow_diagram.png"
     plt.tight_layout()
     plt.savefig(out_path, dpi=180)
@@ -292,10 +292,10 @@ def plot_error_gallery(metrics_json: str | Path, out_dir: str | Path, limit: int
     return out_path
 
 
-def generate_isic_report_assets(
+def generate_pad_ufes_report_assets(
     metrics_json: str | Path,
     *,
-    positive_label: str = "mel",
+    positive_label: str = "MEL",
 ) -> list[Path]:
     metrics_json = Path(metrics_json)
     out_dir = metrics_json.parent

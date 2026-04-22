@@ -2,7 +2,7 @@
 
 This repo scaffolds a **virtual dermatology advisor agent** using **Google ADK (Agent Development Kit)** backed by
 a **local Ollama-hosted model** plus a reproducible **deep-learning training/evaluation pipeline** for dermatology
-image datasets (e.g., HAM10000 / ISIC-style).
+image datasets (e.g., HAM10000 and PAD-UFES-20).
 
 ## What you get
 
@@ -13,7 +13,7 @@ image datasets (e.g., HAM10000 / ISIC-style).
 - **Training pipeline** (PyTorch + timm)
   - Fine-tune a strong pretrained backbone (default: ConvNeXt Tiny IN22K)
   - Outputs `reports/metrics.json` and plots (`reports/loss_curve.png`, `reports/val_accuracy_curve.png`)
-  - Includes a separate ISIC / HAM10000 lesion-level pipeline that writes to its own run directories
+  - Includes a separate PAD-UFES-20 smartphone-image pipeline that writes to its own run directories
     without replacing the legacy `best_model.pt` path
 - **Streamlit demo UI** (`apps/streamlit_inference.py`)
   - **Lesion classifier** tab (upload + probabilities)
@@ -90,19 +90,25 @@ data/ham10000_imagefolder/
   test/<class_name>/*.jpg
 ```
 
-## Prepare the lesion-level ISIC / HAM10000 split
+## Prepare the new PAD-UFES-20 lesion-level split
 
-The existing `prepare_ham10000_imagefolder.py` pipeline stays as-is. For the
-new ISIC work, use the dedicated lesion-level split script instead:
+The existing `prepare_ham10000_imagefolder.py` pipeline stays as-is for the
+legacy path. The new assignment-facing pipeline uses PAD-UFES-20 instead.
+
+1) Download the official PAD-UFES-20 archive locally and extract it under a
+repo-local directory such as `data/pad_ufes20_raw`.
+
+2) Build lesion-level splits from the extracted dataset:
 
 ```bash
-python scripts/prepare_ham10000_lesion_imagefolder.py \
-  --ham-root data/kaggle_ham10000 \
-  --out data/ham10000_lesion_imagefolder
+python scripts/prepare_pad_ufes20_imagefolder.py \
+  --dataset-root data/pad_ufes20_raw \
+  --out data/pad_ufes20_imagefolder
 ```
 
-This writes a separate dataset root plus `split_summary.json` and keeps multiple
-images from the same lesion out of different splits.
+This writes a separate dataset root plus `split_summary.json`, per-split
+metadata CSVs, and keeps multiple images from the same lesion out of different
+splits.
 
 ## Train + generate accuracy visualizations
 
@@ -116,30 +122,30 @@ Artifacts:
 - `reports/loss_curve.png`
 - `reports/val_accuracy_curve.png`
 
-## Train the new ISIC model without replacing the current checkpoint
+## Train the new PAD-UFES-20 model without replacing the current checkpoint
 
 This pipeline writes to its own artifact and report subdirectories:
 
 ```bash
-python scripts/train_isic_model.py \
-  --dataset-root data/ham10000_lesion_imagefolder \
-  --run-name isic_convnext_tiny \
-  --checkpoint-name isic_convnext_tiny_best.pt \
-  --epochs 15 \
-  --batch-size 32 \
+python scripts/train_pad_ufes20_model.py \
+  --dataset-root data/pad_ufes20_imagefolder \
+  --run-name pad_ufes20_efficientnetv2_s \
+  --checkpoint-name pad_ufes20_efficientnetv2_s_best.pt \
+  --epochs 20 \
+  --batch-size 16 \
   --image-size 224 \
-  --backbone convnext_tiny.fb_in22k \
+  --backbone tf_efficientnetv2_s.in21k \
   --device cuda
 ```
 
 Outputs:
-- `artifacts/isic_convnext_tiny/isic_convnext_tiny_best.pt`
-- `artifacts/isic_convnext_tiny/last_model.pt`
-- `reports/isic_convnext_tiny/metrics.json`
-- `reports/isic_convnext_tiny/test_predictions.csv`
-- `reports/isic_convnext_tiny/*.png`
+- `artifacts/pad_ufes20_efficientnetv2_s/pad_ufes20_efficientnetv2_s_best.pt`
+- `artifacts/pad_ufes20_efficientnetv2_s/last_model.pt`
+- `reports/pad_ufes20_efficientnetv2_s/metrics.json`
+- `reports/pad_ufes20_efficientnetv2_s/test_predictions.csv`
+- `reports/pad_ufes20_efficientnetv2_s/*.png`
 
-Detailed Colab instructions live in `docs/isic_colab_training.md`.
+Detailed Colab instructions live in `docs/pad_ufes20_colab_training.md`.
 
 ## Run the Streamlit demo
 
@@ -151,11 +157,11 @@ The advisor chat expects the local Ollama runtime above to be available. In the 
 the agent; after you upload an image in the sidebar, use **Get Advisor Analysis** so the agent receives the local file
 path for `classify_lesion`.
 
-To point the app at the new ISIC checkpoint without changing the existing
+To point the app at the new PAD-UFES-20 checkpoint without changing the existing
 default, set:
 
 ```bash
-export DERM_ADVISOR_CLASSIFIER_CKPT="artifacts/isic_convnext_tiny/isic_convnext_tiny_best.pt"
+export DERM_ADVISOR_CLASSIFIER_CKPT="artifacts/pad_ufes20_efficientnetv2_s/pad_ufes20_efficientnetv2_s_best.pt"
 ```
 
 You can still run **`adk web`** separately for debugging (another port). For day-to-day use, the Streamlit app is intended to replace needing the CLI.
@@ -176,7 +182,7 @@ adk run derm_advisor_agent
 ```
 
 The agent also respects `DERM_ADVISOR_CLASSIFIER_CKPT` if you want it to use the
-new ISIC checkpoint instead of the legacy default.
+new PAD-UFES-20 checkpoint instead of the legacy default.
 
 In chat, provide a local image path and ask for a safety-guarded summary. The agent will use `classify_lesion`.
 The Python agent definition in `agents/derm_advisor_agent/agent.py` is the canonical entrypoint for the local-model

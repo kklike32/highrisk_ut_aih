@@ -17,11 +17,11 @@ from sklearn.metrics import (
     top_k_accuracy_score,
 )
 
-from derm_advisor.vision.isic_dataset import ISICImageSample
+from derm_advisor.vision.pad_ufes_dataset import PADUFESImageSample
 
 
 @dataclass(frozen=True)
-class ISICEvalArtifacts:
+class PADUFESEvalArtifacts:
     summary: dict[str, Any]
     per_class: list[dict[str, Any]]
     confusion_matrix: list[list[int]]
@@ -79,7 +79,7 @@ def multiclass_brier_score(y_true: np.ndarray, y_prob: np.ndarray, num_classes: 
     return float(np.mean(np.sum((y_prob - one_hot) ** 2, axis=1)))
 
 
-def compute_class_weights(samples: list[ISICImageSample], num_classes: int) -> list[float]:
+def compute_class_weights(samples: list[PADUFESImageSample], num_classes: int) -> list[float]:
     counts = np.bincount([sample.label for sample in samples], minlength=num_classes).astype(float)
     if np.any(counts == 0):
         raise ValueError("Cannot compute class weights with a missing class in the training split.")
@@ -89,7 +89,10 @@ def compute_class_weights(samples: list[ISICImageSample], num_classes: int) -> l
     return weights.astype(float).tolist()
 
 
-def summarize_samples(samples: list[ISICImageSample], class_names: list[str]) -> dict[str, Any]:
+def summarize_samples(
+    samples: list[PADUFESImageSample],
+    class_names: list[str],
+) -> dict[str, Any]:
     counts = np.bincount([sample.label for sample in samples], minlength=len(class_names))
     class_counts = {class_names[idx]: int(counts[idx]) for idx in range(len(class_names))}
     return {
@@ -130,6 +133,7 @@ def save_prediction_records(records: list[dict[str, Any]], out_path: str | Path)
     pd.DataFrame.from_records(records).to_csv(out_path, index=False)
     return out_path
 
+
 # pylint: disable=too-many-arguments
 def evaluate_predictions(
     *,
@@ -139,7 +143,7 @@ def evaluate_predictions(
     class_names: list[str],
     loss: float | None = None,
     image_paths: list[str] | None = None,
-) -> ISICEvalArtifacts:
+) -> PADUFESEvalArtifacts:
     num_classes = len(class_names)
     labels = list(range(num_classes))
     precision, recall, f1, support = precision_recall_fscore_support(
@@ -208,7 +212,7 @@ def evaluate_predictions(
         class_names=class_names,
         image_paths=image_paths,
     )
-    return ISICEvalArtifacts(
+    return PADUFESEvalArtifacts(
         summary=summary,
         per_class=per_class,
         confusion_matrix=conf.astype(int).tolist(),

@@ -14,20 +14,20 @@ Split = Literal["train", "val", "test"]
 
 
 @dataclass(frozen=True)
-class ISICImageSample:
+class PADUFESImageSample:
     path: Path
     label: int
 
 
-class ISICPathLabelDataset(Dataset):
+class PADUFESPathLabelDataset(Dataset):
     """
-    ImageFolder-style dataset used by the ISIC lesion pipeline.
+    ImageFolder-style dataset used by the PAD-UFES-20 pipeline.
 
-    The original training pipeline remains untouched; this class exists so the
-    ISIC work can evolve independently.
+    This lives alongside the partner-owned HAM10000 dataset code so the new
+    project direction can evolve independently.
     """
 
-    def __init__(self, samples: list[ISICImageSample], transform=None, return_path: bool = False):
+    def __init__(self, samples: list[PADUFESImageSample], transform=None, return_path: bool = False):
         self.samples = samples
         self.transform = transform
         self.return_path = return_path
@@ -48,7 +48,10 @@ class ISICPathLabelDataset(Dataset):
         return image_array, int(sample.label)
 
 
-def load_isic_split_from_imagefolder(root: Path, split: Split) -> tuple[list[ISICImageSample], list[str]]:
+def load_pad_ufes_split_from_imagefolder(
+    root: Path,
+    split: Split,
+) -> tuple[list[PADUFESImageSample], list[str]]:
     split_dir = root / split
     if not split_dir.exists():
         raise FileNotFoundError(f"Missing split directory: {split_dir}")
@@ -57,12 +60,12 @@ def load_isic_split_from_imagefolder(root: Path, split: Split) -> tuple[list[ISI
     class_names = [path.name for path in class_dirs]
     class_to_idx = {name: idx for idx, name in enumerate(class_names)}
 
-    samples: list[ISICImageSample] = []
+    samples: list[PADUFESImageSample] = []
     for class_name in class_names:
         class_dir = split_dir / class_name
         for path in sorted(class_dir.rglob("*")):
             if path.is_file() and path.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
-                samples.append(ISICImageSample(path=path, label=class_to_idx[class_name]))
+                samples.append(PADUFESImageSample(path=path, label=class_to_idx[class_name]))
 
     if not samples:
         raise RuntimeError(f"No images found under {split_dir}")

@@ -2,23 +2,23 @@ from __future__ import annotations
 
 import argparse
 
-from derm_advisor.vision.isic_train import ISICTrainConfig, train_isic_model
-from derm_advisor.viz.isic_reports import generate_isic_report_assets
+from derm_advisor.vision.pad_ufes_train import PADUFESTrainConfig, train_pad_ufes_model
+from derm_advisor.viz.pad_ufes_reports import generate_pad_ufes_report_assets
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-root", required=True, help="Path containing train/val/test folders.")
-    parser.add_argument("--run-name", default="isic_convnext_tiny")
-    parser.add_argument("--checkpoint-name", default="isic_convnext_tiny_best.pt")
-    parser.add_argument("--epochs", type=int, default=15)
-    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--run-name", default="pad_ufes20_efficientnetv2_s")
+    parser.add_argument("--checkpoint-name", default="pad_ufes20_efficientnetv2_s_best.pt")
+    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--image-size", type=int, default=224)
-    parser.add_argument("--backbone", default="convnext_tiny.fb_in22k")
+    parser.add_argument("--backbone", default="tf_efficientnetv2_s.in21k")
     parser.add_argument("--device", default="cuda", help='One of: "cuda", "mps", "cpu"')
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--positive-class", default="mel", help="Class to use for ROC/PR report assets.")
+    parser.add_argument("--positive-class", default="MEL", help="Class to use for ROC/PR report assets.")
     parser.add_argument("--artifacts-dir", default=None, help="Optional artifact output root.")
     parser.add_argument("--reports-dir", default=None, help="Optional reports output root.")
     parser.add_argument(
@@ -38,8 +38,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    metrics_path = train_isic_model(
-        ISICTrainConfig(
+    metrics_path = train_pad_ufes_model(
+        PADUFESTrainConfig(
             dataset_root=args.dataset_root,
             run_name=args.run_name,
             checkpoint_name=args.checkpoint_name,
@@ -58,7 +58,7 @@ def main() -> None:
         )
     )
 
-    generated = generate_isic_report_assets(metrics_path, positive_label=args.positive_class)
+    generated = generate_pad_ufes_report_assets(metrics_path, positive_label=args.positive_class)
     print(f"Wrote metrics: {metrics_path}")
     for path in generated:
         print(f"Wrote report asset: {path}")
