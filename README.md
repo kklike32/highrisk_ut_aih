@@ -108,7 +108,9 @@ python scripts/prepare_pad_ufes20_imagefolder.py \
 
 This writes a separate dataset root plus `split_summary.json`, per-split
 metadata CSVs, and keeps multiple images from the same lesion out of different
-splits.
+splits. For PAD-UFES-20 specifically, the prep step groups lesions by
+`patient_id + lesion_id`, which matches the official `img_id` structure and
+avoids collisions from reused raw `lesion_id` values in the Kaggle mirror.
 
 ## Train + generate accuracy visualizations
 
