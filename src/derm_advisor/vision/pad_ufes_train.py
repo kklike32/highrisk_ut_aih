@@ -58,6 +58,12 @@ class PADUFESOutputPaths:
     predictions_csv: Path
 
 
+def _format_metric(value: float | None) -> str:
+    if value is None:
+        return "n/a"
+    return f"{value:.4f}"
+
+
 def _seed_all(seed: int) -> None:
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -256,7 +262,12 @@ def train_pad_ufes_model(cfg: PADUFESTrainConfig) -> Path:
 
     for epoch in range(1, cfg.epochs + 1):
         model.train()
-        pbar = tqdm(train_loader, desc=f"epoch {epoch}/{cfg.epochs}", leave=False)
+        pbar = tqdm(
+            train_loader,
+            desc=f"epoch {epoch}/{cfg.epochs}",
+            leave=True,
+            dynamic_ncols=True,
+        )
         train_losses: list[float] = []
         for batch in pbar:
             x, y, _ = _unpack_batch(batch)
@@ -285,7 +296,8 @@ def train_pad_ufes_model(cfg: PADUFESTrainConfig) -> Path:
             }
         )
 
-        if val_eval.summary["balanced_acc"] > best_val:
+        improved = val_eval.summary["balanced_acc"] > best_val
+        if improved:
             best_val = float(val_eval.summary["balanced_acc"])
             torch.save(
                 _checkpoint_payload(
@@ -300,6 +312,19 @@ def train_pad_ufes_model(cfg: PADUFESTrainConfig) -> Path:
                 ),
                 output_paths.best_checkpoint,
             )
+
+        tqdm.write(
+            "epoch "
+            f"{epoch}/{cfg.epochs} | "
+            f"train_loss={_format_metric(history[-1]['train_loss'])} | "
+            f"val_loss={_format_metric(history[-1]['val_loss'])} | "
+            f"val_acc={_format_metric(history[-1]['val_acc'])} | "
+            f"val_balanced_acc={_format_metric(history[-1]['val_balanced_acc'])} | "
+            f"val_macro_f1={_format_metric(history[-1]['val_macro_f1'])} | "
+            f"val_top2_acc={_format_metric(history[-1]['val_top2_acc'])} | "
+            f"val_ece={_format_metric(history[-1]['val_ece'])}"
+            f"{' | best_checkpoint=updated' if improved else ''}"
+        )
 
     if cfg.save_last_checkpoint:
         torch.save(
@@ -320,6 +345,15 @@ def train_pad_ufes_model(cfg: PADUFESTrainConfig) -> Path:
     model.load_state_dict(ckpt["model_state_dict"])
     test_eval = _run_eval(model, test_loader, device, class_names, loss_fn)
     save_prediction_records(test_eval.predictions, output_paths.predictions_csv)
+    tqdm.write(
+        "test | "
+        f"loss={_format_metric(test_eval.summary['loss'])} | "
+        f"acc={_format_metric(test_eval.summary['acc'])} | "
+        f"balanced_acc={_format_metric(test_eval.summary['balanced_acc'])} | "
+        f"macro_f1={_format_metric(test_eval.summary['macro_f1'])} | "
+        f"top2_acc={_format_metric(test_eval.summary['top2_acc'])} | "
+        f"ece={_format_metric(test_eval.summary['ece'])}"
+    )
 
     output = {
         "history": history,
