@@ -1,0 +1,1 @@
+/content/drive/MyDrive/highrisk_ut_aih_pad_ufes20/artifacts/pad_ufes20_efficientnetv2_s/pad_ufes20_efficientnetv2_s_best.pt

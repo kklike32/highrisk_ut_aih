@@ -1,0 +1,68 @@
+{
+  "source_metadata": "/content/drive/MyDrive/highrisk_ut_aih_pad_ufes20/raw_v2/metadata.csv",
+  "seed": 42,
+  "val_size": 0.15,
+  "test_size": 0.15,
+  "symlink": false,
+  "supported_diagnostics": [
+    "ACK",
+    "BCC",
+    "MEL",
+    "NEV",
+    "SCC",
+    "SEK"
+  ],
+  "lesion_grouping": {
+    "column": "lesion_group_id",
+    "rule": "patient_id + lesion_id (fallback: lesion_id when patient_id is missing)",
+    "dropped_conflicting_groups": {
+      "num_groups": 0,
+      "num_rows": 0,
+      "sample_groups": []
+    }
+  },
+  "splits": {
+    "train": {
+      "num_images": 1608,
+      "num_lesions": 1323,
+      "class_counts": {
+        "ACK": 505,
+        "BCC": 599,
+        "MEL": 39,
+        "NEV": 172,
+        "SCC": 132,
+        "SEK": 161
+      },
+      "num_patients": 1038
+    },
+    "val": {
+      "num_images": 342,
+      "num_lesions": 284,
+      "class_counts": {
+        "ACK": 111,
+        "BCC": 120,
+        "MEL": 6,
+        "NEV": 36,
+        "SCC": 34,
+        "SEK": 35
+      },
+      "num_patients": 265
+    },
+    "test": {
+      "num_images": 348,
+      "num_lesions": 284,
+      "class_counts": {
+        "ACK": 114,
+        "BCC": 126,
+        "MEL": 7,
+        "NEV": 36,
+        "SCC": 26,
+        "SEK": 39
+      },
+      "num_patients": 271
+    }
+  },
+  "leakage_check": {
+    "lesion_overlap": false
+  }
+}

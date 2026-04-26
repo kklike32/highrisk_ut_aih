@@ -1,0 +1,544 @@
+{
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 6.732623258439621,
+      "val_loss": 4.410979298028079,
+      "val_acc": 0.3713450292397661,
+      "val_balanced_acc": 0.353795917766506,
+      "val_macro_f1": 0.302261250943399,
+      "val_weighted_f1": 0.3965717752122727,
+      "val_top2_acc": 0.6403508771929824,
+      "val_ece": 0.4911543041119102
+    },
+    {
+      "epoch": 2,
+      "train_loss": 3.2159170408060054,
+      "val_loss": 2.2397895577279003,
+      "val_acc": 0.5116959064327485,
+      "val_balanced_acc": 0.47471494603847536,
+      "val_macro_f1": 0.42064049474285664,
+      "val_weighted_f1": 0.5152911710363739,
+      "val_top2_acc": 0.7368421052631579,
+      "val_ece": 0.3108923701863539
+    },
+    {
+      "epoch": 3,
+      "train_loss": 1.8734332393891742,
+      "val_loss": 1.9350857843052258,
+      "val_acc": 0.4619883040935672,
+      "val_balanced_acc": 0.5919950412597471,
+      "val_macro_f1": 0.4517974703537646,
+      "val_weighted_f1": 0.47884733871063767,
+      "val_top2_acc": 0.7368421052631579,
+      "val_ece": 0.3264185908245064
+    },
+    {
+      "epoch": 4,
+      "train_loss": 1.3425173384718376,
+      "val_loss": 1.3336719464172015,
+      "val_acc": 0.543859649122807,
+      "val_balanced_acc": 0.4955006477065302,
+      "val_macro_f1": 0.45776471298208604,
+      "val_weighted_f1": 0.5572246043570689,
+      "val_top2_acc": 0.8421052631578947,
+      "val_ece": 0.22480247269945539
+    },
+    {
+      "epoch": 5,
+      "train_loss": 1.1950050117355762,
+      "val_loss": 1.228707123886455,
+      "val_acc": 0.5964912280701754,
+      "val_balanced_acc": 0.5667223946635711,
+      "val_macro_f1": 0.5131677092497676,
+      "val_weighted_f1": 0.600151293413513,
+      "val_top2_acc": 0.8128654970760234,
+      "val_ece": 0.1790401143463034
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.9271651873789212,
+      "val_loss": 1.0803596688942476,
+      "val_acc": 0.6111111111111112,
+      "val_balanced_acc": 0.6323412698412699,
+      "val_macro_f1": 0.582997266858497,
+      "val_weighted_f1": 0.6277169201962944,
+      "val_top2_acc": 0.8538011695906432,
+      "val_ece": 0.15999255333727563
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.8109134326476862,
+      "val_loss": 1.0062152960083701,
+      "val_acc": 0.6783625730994152,
+      "val_balanced_acc": 0.6517551164609988,
+      "val_macro_f1": 0.5994909953712689,
+      "val_weighted_f1": 0.6806467302202951,
+      "val_top2_acc": 0.8654970760233918,
+      "val_ece": 0.11979111994219106
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.775050876016664,
+      "val_loss": 1.0731611536307768,
+      "val_acc": 0.6081871345029239,
+      "val_balanced_acc": 0.6484978676155148,
+      "val_macro_f1": 0.5760176732180594,
+      "val_weighted_f1": 0.6199188197225843,
+      "val_top2_acc": 0.8421052631578947,
+      "val_ece": 0.19314384748015484
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.6747109847198619,
+      "val_loss": 0.9413842335343361,
+      "val_acc": 0.6754385964912281,
+      "val_balanced_acc": 0.6862533752239636,
+      "val_macro_f1": 0.640220624824214,
+      "val_weighted_f1": 0.6830676000921584,
+      "val_top2_acc": 0.868421052631579,
+      "val_ece": 0.12744386921152034
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.5727829010327263,
+      "val_loss": 1.1675894565202973,
+      "val_acc": 0.6578947368421053,
+      "val_balanced_acc": 0.5751232324761736,
+      "val_macro_f1": 0.5540132120297048,
+      "val_weighted_f1": 0.661675698090697,
+      "val_top2_acc": 0.868421052631579,
+      "val_ece": 0.1660431307135967
+    },
+    {
+      "epoch": 11,
+      "train_loss": 0.5061619559874629,
+      "val_loss": 1.1056936159729958,
+      "val_acc": 0.6695906432748538,
+      "val_balanced_acc": 0.5603075764840472,
+      "val_macro_f1": 0.5435427299773365,
+      "val_weighted_f1": 0.6601998601970971,
+      "val_top2_acc": 0.847953216374269,
+      "val_ece": 0.1512329066008852
+    },
+    {
+      "epoch": 12,
+      "train_loss": 0.45211570090291525,
+      "val_loss": 1.3274407122622838,
+      "val_acc": 0.6578947368421053,
+      "val_balanced_acc": 0.5881944970180264,
+      "val_macro_f1": 0.5748340184868566,
+      "val_weighted_f1": 0.6523975747405548,
+      "val_top2_acc": 0.8538011695906432,
+      "val_ece": 0.18573314413341163
+    },
+    {
+      "epoch": 13,
+      "train_loss": 0.5381253879554201,
+      "val_loss": 1.1420884403315457,
+      "val_acc": 0.6403508771929824,
+      "val_balanced_acc": 0.6102893860246801,
+      "val_macro_f1": 0.5658926493873292,
+      "val_weighted_f1": 0.6498702516661523,
+      "val_top2_acc": 0.8508771929824561,
+      "val_ece": 0.1750902607601289
+    },
+    {
+      "epoch": 14,
+      "train_loss": 0.4098828827759417,
+      "val_loss": 1.1228526200760494,
+      "val_acc": 0.695906432748538,
+      "val_balanced_acc": 0.5948536772066184,
+      "val_macro_f1": 0.5828331853304237,
+      "val_weighted_f1": 0.6944373802070147,
+      "val_top2_acc": 0.847953216374269,
+      "val_ece": 0.17909641929885795
+    },
+    {
+      "epoch": 15,
+      "train_loss": 0.39692650121258627,
+      "val_loss": 1.2158765454183926,
+      "val_acc": 0.6754385964912281,
+      "val_balanced_acc": 0.6276204776204776,
+      "val_macro_f1": 0.5927185162792082,
+      "val_weighted_f1": 0.6811637357522065,
+      "val_top2_acc": 0.8567251461988304,
+      "val_ece": 0.16873046598936384
+    },
+    {
+      "epoch": 16,
+      "train_loss": 0.3701222879387955,
+      "val_loss": 1.206502689556642,
+      "val_acc": 0.6695906432748538,
+      "val_balanced_acc": 0.5978823361176303,
+      "val_macro_f1": 0.5916699613668477,
+      "val_weighted_f1": 0.6753348586066087,
+      "val_top2_acc": 0.8538011695906432,
+      "val_ece": 0.1765885447200976
+    },
+    {
+      "epoch": 17,
+      "train_loss": 0.36215981966493155,
+      "val_loss": 1.1526224315166473,
+      "val_acc": 0.6754385964912281,
+      "val_balanced_acc": 0.5627983025041848,
+      "val_macro_f1": 0.5517877178496811,
+      "val_weighted_f1": 0.675787235821342,
+      "val_top2_acc": 0.8713450292397661,
+      "val_ece": 0.16507117920800257
+    },
+    {
+      "epoch": 18,
+      "train_loss": 0.3672692886378505,
+      "val_loss": 1.2280891876329074,
+      "val_acc": 0.6783625730994152,
+      "val_balanced_acc": 0.651305927776516,
+      "val_macro_f1": 0.6277341182546069,
+      "val_weighted_f1": 0.6829776430033646,
+      "val_top2_acc": 0.8859649122807017,
+      "val_ece": 0.20285295289859434
+    },
+    {
+      "epoch": 19,
+      "train_loss": 0.2992907941415168,
+      "val_loss": 1.4137474623593418,
+      "val_acc": 0.695906432748538,
+      "val_balanced_acc": 0.5659292696057402,
+      "val_macro_f1": 0.5660817689828712,
+      "val_weighted_f1": 0.681342728480705,
+      "val_top2_acc": 0.8596491228070176,
+      "val_ece": 0.19404105981539563
+    },
+    {
+      "epoch": 20,
+      "train_loss": 0.2512878322107072,
+      "val_loss": 1.2326345403086056,
+      "val_acc": 0.6754385964912281,
+      "val_balanced_acc": 0.6558616389498743,
+      "val_macro_f1": 0.6186106029404005,
+      "val_weighted_f1": 0.673659028604976,
+      "val_top2_acc": 0.8801169590643275,
+      "val_ece": 0.18868823149050887
+    }
+  ],
+  "test": {
+    "loss": 1.0516808398745277,
+    "num_samples": 348,
+    "acc": 0.6724137931034483,
+    "balanced_acc": 0.6682545037808195,
+    "macro_f1": 0.6511170130222679,
+    "weighted_f1": 0.6813802135175476,
+    "top2_acc": 0.8706896551724138,
+    "macro_auroc": 0.8936780121552862,
+    "macro_average_precision": 0.7217117081645505,
+    "mean_confidence": 0.8159346464036525,
+    "mean_confidence_correct": 0.8643101965769743,
+    "mean_confidence_incorrect": 0.7166374644689393,
+    "ece": 0.1435208533002042,
+    "brier_score": 0.4744913219247052
+  },
+  "test_per_class": [
+    {
+      "label": "ACK",
+      "precision": 0.8315789473684211,
+      "recall": 0.6929824561403509,
+      "f1": 0.7559808612440191,
+      "support": 114,
+      "auroc": 0.9152046783625731,
+      "average_precision": 0.8576553887873585
+    },
+    {
+      "label": "BCC",
+      "precision": 0.7058823529411765,
+      "recall": 0.6666666666666666,
+      "f1": 0.6857142857142857,
+      "support": 126,
+      "auroc": 0.8481695981695981,
+      "average_precision": 0.7028869348996728
+    },
+    {
+      "label": "MEL",
+      "precision": 0.8571428571428571,
+      "recall": 0.8571428571428571,
+      "f1": 0.8571428571428571,
+      "support": 7,
+      "auroc": 0.9991621281943862,
+      "average_precision": 0.9682539682539681
+    },
+    {
+      "label": "NEV",
+      "precision": 0.6041666666666666,
+      "recall": 0.8055555555555556,
+      "f1": 0.6904761904761905,
+      "support": 36,
+      "auroc": 0.9599358974358975,
+      "average_precision": 0.7484824081094024
+    },
+    {
+      "label": "SCC",
+      "precision": 0.1388888888888889,
+      "recall": 0.19230769230769232,
+      "f1": 0.16129032258064516,
+      "support": 26,
+      "auroc": 0.6819159101767798,
+      "average_precision": 0.16961509233468286
+    },
+    {
+      "label": "SEK",
+      "precision": 0.7209302325581395,
+      "recall": 0.7948717948717948,
+      "f1": 0.7560975609756098,
+      "support": 39,
+      "auroc": 0.957679860592482,
+      "average_precision": 0.8833764566022188
+    }
+  ],
+  "test_confusion_matrix": [
+    [
+      79,
+      18,
+      0,
+      2,
+      11,
+      4
+    ],
+    [
+      11,
+      84,
+      1,
+      9,
+      20,
+      1
+    ],
+    [
+      0,
+      0,
+      6,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      2,
+      0,
+      29,
+      0,
+      4
+    ],
+    [
+      4,
+      14,
+      0,
+      1,
+      5,
+      2
+    ],
+    [
+      0,
+      1,
+      0,
+      7,
+      0,
+      31
+    ]
+  ],
+  "test_confusion_matrix_normalized": [
+    [
+      0.6929824561403509,
+      0.15789473684210525,
+      0.0,
+      0.017543859649122806,
+      0.09649122807017543,
+      0.03508771929824561
+    ],
+    [
+      0.0873015873015873,
+      0.6666666666666666,
+      0.007936507936507936,
+      0.07142857142857142,
+      0.15873015873015872,
+      0.007936507936507936
+    ],
+    [
+      0.0,
+      0.0,
+      0.8571428571428571,
+      0.0,
+      0.0,
+      0.14285714285714285
+    ],
+    [
+      0.027777777777777776,
+      0.05555555555555555,
+      0.0,
+      0.8055555555555556,
+      0.0,
+      0.1111111111111111
+    ],
+    [
+      0.15384615384615385,
+      0.5384615384615384,
+      0.0,
+      0.038461538461538464,
+      0.19230769230769232,
+      0.07692307692307693
+    ],
+    [
+      0.0,
+      0.02564102564102564,
+      0.0,
+      0.1794871794871795,
+      0.0,
+      0.7948717948717948
+    ]
+  ],
+  "class_names": [
+    "ACK",
+    "BCC",
+    "MEL",
+    "NEV",
+    "SCC",
+    "SEK"
+  ],
+  "best_checkpoint": "/content/drive/MyDrive/highrisk_ut_aih_pad_ufes20/artifacts/pad_ufes20_efficientnetv2_s/pad_ufes20_efficientnetv2_s_best.pt",
+  "last_checkpoint": "/content/drive/MyDrive/highrisk_ut_aih_pad_ufes20/artifacts/pad_ufes20_efficientnetv2_s/last_model.pt",
+  "predictions_csv": "/content/drive/MyDrive/highrisk_ut_aih_pad_ufes20/reports/pad_ufes20_efficientnetv2_s/test_predictions.csv",
+  "dataset_root": "/content/drive/MyDrive/highrisk_ut_aih_pad_ufes20/data/pad_ufes20_imagefolder_v2",
+  "dataset_summary": {
+    "train": {
+      "num_images": 1608,
+      "class_counts": {
+        "ACK": 505,
+        "BCC": 599,
+        "MEL": 39,
+        "NEV": 172,
+        "SCC": 132,
+        "SEK": 161
+      }
+    },
+    "val": {
+      "num_images": 342,
+      "class_counts": {
+        "ACK": 111,
+        "BCC": 120,
+        "MEL": 6,
+        "NEV": 36,
+        "SCC": 34,
+        "SEK": 35
+      }
+    },
+    "test": {
+      "num_images": 348,
+      "class_counts": {
+        "ACK": 114,
+        "BCC": 126,
+        "MEL": 7,
+        "NEV": 36,
+        "SCC": 26,
+        "SEK": 39
+      }
+    }
+  },
+  "split_summary": {
+    "source_metadata": "/content/drive/MyDrive/highrisk_ut_aih_pad_ufes20/raw_v2/metadata.csv",
+    "seed": 42,
+    "val_size": 0.15,
+    "test_size": 0.15,
+    "symlink": false,
+    "supported_diagnostics": [
+      "ACK",
+      "BCC",
+      "MEL",
+      "NEV",
+      "SCC",
+      "SEK"
+    ],
+    "lesion_grouping": {
+      "column": "lesion_group_id",
+      "rule": "patient_id + lesion_id (fallback: lesion_id when patient_id is missing)",
+      "dropped_conflicting_groups": {
+        "num_groups": 0,
+        "num_rows": 0,
+        "sample_groups": []
+      }
+    },
+    "splits": {
+      "train": {
+        "num_images": 1608,
+        "num_lesions": 1323,
+        "class_counts": {
+          "ACK": 505,
+          "BCC": 599,
+          "MEL": 39,
+          "NEV": 172,
+          "SCC": 132,
+          "SEK": 161
+        },
+        "num_patients": 1038
+      },
+      "val": {
+        "num_images": 342,
+        "num_lesions": 284,
+        "class_counts": {
+          "ACK": 111,
+          "BCC": 120,
+          "MEL": 6,
+          "NEV": 36,
+          "SCC": 34,
+          "SEK": 35
+        },
+        "num_patients": 265
+      },
+      "test": {
+        "num_images": 348,
+        "num_lesions": 284,
+        "class_counts": {
+          "ACK": 114,
+          "BCC": 126,
+          "MEL": 7,
+          "NEV": 36,
+          "SCC": 26,
+          "SEK": 39
+        },
+        "num_patients": 271
+      }
+    },
+    "leakage_check": {
+      "lesion_overlap": false
+    }
+  },
+  "train_config": {
+    "dataset_root": "/content/drive/MyDrive/highrisk_ut_aih_pad_ufes20/data/pad_ufes20_imagefolder_v2",
+    "image_size": 224,
+    "backbone": "tf_efficientnetv2_s.in21k",
+    "pretrained": true,
+    "epochs": 20,
+    "batch_size": 16,
+    "lr": 0.0003,
+    "weight_decay": 0.0001,
+    "num_workers": 0,
+    "device": "cuda",
+    "seed": 42,
+    "run_name": "pad_ufes20_efficientnetv2_s",
+    "artifacts_dir": "/content/drive/MyDrive/highrisk_ut_aih_pad_ufes20/artifacts",
+    "reports_dir": "/content/drive/MyDrive/highrisk_ut_aih_pad_ufes20/reports",
+    "checkpoint_name": "pad_ufes20_efficientnetv2_s_best.pt",
+    "use_class_weights": true,
+    "save_last_checkpoint": true
+  },
+  "model_config": {
+    "backbone": "tf_efficientnetv2_s.in21k",
+    "num_classes": 6,
+    "pretrained": true,
+    "dropout": 0.2
+  },
+  "class_weights": [
+    0.24301100565290884,
+    0.2048757226289131,
+    3.146680970633819,
+    0.7134916154344125,
+    0.929701195869083,
+    0.7622394897808631
+  ]
+}

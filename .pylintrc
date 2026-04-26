@@ -1,0 +1,18 @@
+[MAIN]
+persistent = no
+
+[MESSAGES CONTROL]
+disable =
+    broad-exception-caught,
+    import-outside-toplevel,
+    missing-class-docstring,
+    missing-function-docstring,
+    missing-module-docstring,
+    too-many-branches,
+    too-many-instance-attributes,
+    too-many-locals,
+    too-many-statements,
+    trailing-newlines
+
+[FORMAT]
+max-line-length = 110

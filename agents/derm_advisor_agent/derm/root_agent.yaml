@@ -1,6 +1,7 @@
+# Reference placeholder only. The runnable local-model agent lives in ../agent.py.
 name: derm
-model: gemini-2.5-flash
+model: qwen3:8b
 agent_class: LlmAgent
-instruction: You are the root agent that coordinates other agents.
+instruction: Use agents/derm_advisor_agent/agent.py for the active local Ollama-backed runtime.
 sub_agents: []
 tools: []
