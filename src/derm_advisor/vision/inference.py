@@ -30,12 +30,19 @@ def _pick_device(preferred: str = "mps") -> str:
     return "cpu"
 
 
+def _checkpoint_model_config(raw_model_cfg: dict[str, object]) -> ModelConfig:
+    """Build an inference config from a saved checkpoint without network fetches."""
+    model_cfg = dict(raw_model_cfg)
+    # The checkpoint already contains trained backbone weights.
+    model_cfg["pretrained"] = False
+    return ModelConfig(**model_cfg)
+
+
 def load_checkpoint(ckpt_path: str | Path, device: str = "mps"):
     device = _pick_device(device)
     ckpt_path = Path(ckpt_path)
     ckpt = torch.load(ckpt_path, map_location=device)
-    model_cfg = ckpt["model_config"]
-    model = create_model(ModelConfig(**model_cfg))
+    model = create_model(_checkpoint_model_config(ckpt["model_config"]))
     model.load_state_dict(ckpt["model_state_dict"])
     model = model.to(device).eval()
     return model, ckpt, device
@@ -57,4 +64,3 @@ def classify_image(image_path: str | Path, ckpt_path: str | Path) -> Classificat
     confidence = float(proba[top_idx].item())
     probs = {class_names[i]: float(proba[i].item()) for i in range(len(class_names))}
     return ClassificationResult(label=label, confidence=confidence, probabilities=probs)
-

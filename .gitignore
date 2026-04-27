@@ -22,3 +22,5 @@ reports/
 .idea/
 
 .env
+report/
+*.pt
